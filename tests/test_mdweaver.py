@@ -93,7 +93,7 @@ fn example<T>(value: T) -> Result<T, Error> {
 - Item 1
 - Item 2"""
         result = preprocess_markdown(md)
-        lines = result.split("\n")
+        lines = result.splitlines()
         # Find the line before "- Item 1"
         for i, line in enumerate(lines):
             if line == "- Item 1" and i > 0:
@@ -105,7 +105,7 @@ fn example<T>(value: T) -> Result<T, Error> {
 1. First item
 2. Second item"""
         result = preprocess_markdown(md)
-        lines = result.split("\n")
+        lines = result.splitlines()
         for i, line in enumerate(lines):
             if line == "1. First item" and i > 0:
                 assert lines[i - 1] == "", "Expected blank line before numbered list"
