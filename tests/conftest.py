@@ -52,7 +52,13 @@ And a table:
 
 @pytest.fixture
 def sample_md_dir(temp_dir):
-    """Create a directory with multiple markdown files."""
+    """Create a directory with multiple markdown files:
+
+    ├── 01-intro.md
+    ├── 02-getting-started.md
+    └── advanced
+        └── 03-advanced.md
+    """
     docs_dir = temp_dir / "docs"
     docs_dir.mkdir()
 
