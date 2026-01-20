@@ -493,12 +493,12 @@ def generate_epub(input_path: Path, output_dir: Path, title: str | None = None) 
 
     # Copyright notice
     current_year = datetime.datetime.now().year
-    copyright_html = f'''
+    copyright_html = f"""
     <div class="copyright">
         <p>&copy; {current_year} {AUTHOR_ATTRIBUTION} | v{version}</p>
         <p>Exclusive cohort materials - Please do not share</p>
     </div>
-    '''
+    """
 
     # Create chapters from markdown files
     chapters = []
@@ -518,7 +518,7 @@ def generate_epub(input_path: Path, output_dir: Path, title: str | None = None) 
         # Create chapter
         chapter = epub.EpubHtml(
             title=title,
-            file_name=f"chapter_{i+1:02d}.xhtml",
+            file_name=f"chapter_{i + 1:02d}.xhtml",
             lang="en",
         )
         chapter.content = f"<html><body>{html_content}{copyright_html}</body></html>"
