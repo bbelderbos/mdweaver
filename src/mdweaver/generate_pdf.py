@@ -85,15 +85,7 @@ def preprocess_markdown(md_content: str) -> str:
 
 
 def get_md_files(path: Path, recursive: bool = True) -> list[Path]:
-    """Get all markdown files from a file or directory.
-
-    Args:
-        path: A markdown file or directory containing markdown files
-        recursive: If True, search directories recursively
-
-    Returns:
-        List of markdown file paths, sorted by full path
-    """
+    """Get all markdown files from a file or directory."""
     if path.is_file():
         if path.suffix.lower() == ".md":
             return [path]
@@ -127,11 +119,7 @@ def convert_md_to_html(md_content: str) -> str:
 
 
 def get_css_styles(watermark: str | None = None) -> str:
-    """Generate CSS styles including Pygments syntax highlighting.
-
-    Args:
-        watermark: Optional watermark text to display diagonally across pages
-    """
+    """Generate CSS styles including Pygments syntax highlighting."""
     # Get Pygments CSS for code highlighting (using a nice theme)
     pygments_css = HtmlFormatter(style="monokai").get_style_defs(".highlight")
 
@@ -427,14 +415,7 @@ def generate_epub(
     title: str | None = None,
     author: str | None = None,
 ) -> Path:
-    """Generate EPUB from markdown file(s).
-
-    Args:
-        input_path: Path to a markdown file or directory containing markdown files
-        output_dir: Directory to write the output file
-        title: Optional title for the EPUB (defaults to input path name)
-        author: Optional author name for metadata
-    """
+    """Generate EPUB from markdown file(s)."""
     if not input_path.exists():
         print(f"Error: Path not found: {input_path}")
         sys.exit(1)
@@ -524,14 +505,7 @@ def generate_pdf(
     title: str | None = None,
     watermark: str | None = None,
 ) -> Path:
-    """Generate PDF from markdown file(s).
-
-    Args:
-        input_path: Path to a markdown file or directory containing markdown files
-        output_dir: Directory to write the output file
-        title: Optional title for the PDF (defaults to input path name)
-        watermark: Optional watermark text to display diagonally across pages
-    """
+    """Generate PDF from markdown file(s)."""
     if not WEASYPRINT_AVAILABLE:
         print("Error: PDF generation requires WeasyPrint system dependencies.")
         print(
