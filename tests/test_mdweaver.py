@@ -79,6 +79,21 @@ class TestGetMdFiles:
         paths = [str(f) for f in files]
         assert not any("output/ignored.md" in p.replace("\\", "/") for p in paths)
 
+    def test_multiple_exclude_patterns(self, sample_md_dir):
+        """Should exclude files matching any of multiple exclude patterns."""
+        # create two extra markdown files we want to ignore
+        (sample_md_dir / "README.md").write_text("# Readme\n", encoding="utf-8")
+        (sample_md_dir / "EXERCISE_SPECS.md").write_text("# Specs\n", encoding="utf-8")
+
+        files = get_md_files(
+            sample_md_dir,
+            recursive=True,
+            exclude=["**/README.md", "**/EXERCISE_SPECS.md"],
+        )
+        names = {f.name for f in files}
+        assert "README.md" not in names
+        assert "EXERCISE_SPECS.md" not in names
+
 
 class TestPreprocessMarkdown:
     """Tests for preprocess_markdown function."""
