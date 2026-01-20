@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 """
-Generate nicely formatted PDF and EPUB from markdown files.
+Weave markdown files into beautifully formatted PDFs and EPUBs.
 
 Usage:
-    python generate_pdf.py document.md
-    python generate_pdf.py ./docs --format epub
-    python generate_pdf.py ./content --format both
-    ...
+    mdweaver document.md
+    mdweaver ./docs --format epub
+    mdweaver ./content --format both -w "DRAFT"
 """
 
 import argparse
@@ -18,31 +17,30 @@ from pathlib import Path
 import markdown
 from ebooklib import epub
 from pygments.formatters import HtmlFormatter
-from weasyprint import HTML, CSS
 
-# Attribution for PDF/EPUB copyright and author metadata
-AUTHOR_ATTRIBUTION = "Jim Hodapp / Pybites"
+# WeasyPrint requires system libraries (pango, cairo, etc.)
+# Import lazily to allow other functionality to work without it
+try:
+    from weasyprint import CSS, HTML
 
-
-def get_export_version() -> str:
-    """Read export version from EXPORT_VERSION file."""
-    version_file = Path(__file__).parent / "EXPORT_VERSION"
-    if version_file.exists():
-        return version_file.read_text().strip()
-    return "0.0"
+    WEASYPRINT_AVAILABLE = True
+except OSError:
+    WEASYPRINT_AVAILABLE = False
+    CSS = None
+    HTML = None
 
 
 def preprocess_markdown(md_content: str) -> str:
     """Preprocess markdown to fix rendering issues.
 
     Fixes:
-    1. Escape angle brackets in Rust generics (e.g., Result<T, E>) outside of
+    1. Escape angle brackets in generics (e.g., Result<T, E>) outside of
        code blocks/backticks so they render correctly instead of being stripped
        as HTML tags.
     2. Add blank line before bullet/numbered lists when missing, as markdown
        requires blank lines before lists for proper rendering.
     """
-    lines = md_content.split("\n")
+    lines = md_content.splitlines()
     in_code_block = False
     processed_lines = []
 
@@ -54,7 +52,7 @@ def preprocess_markdown(md_content: str) -> str:
             continue
 
         if not in_code_block:
-            # Fix 1: Escape < and > in Rust generics outside of backticks
+            # Fix 1: Escape < and > in generics outside of backticks
             # Split line by backtick-delimited code spans and only process non-code parts
             result = []
             parts = re.split(r"(`[^`]+`)", line)
@@ -128,17 +126,14 @@ def convert_md_to_html(md_content: str) -> str:
     return md.convert(md_content)
 
 
-def get_css_styles(version: str, watermark: str | None = None) -> str:
+def get_css_styles(watermark: str | None = None) -> str:
     """Generate CSS styles including Pygments syntax highlighting.
 
     Args:
-        version: Version string to display in footer
         watermark: Optional watermark text to display diagonally across pages
     """
     # Get Pygments CSS for code highlighting (using a nice theme)
     pygments_css = HtmlFormatter(style="monokai").get_style_defs(".highlight")
-
-    current_year = datetime.datetime.now().year
 
     # Build watermark CSS only if watermark text is provided
     watermark_css = ""
@@ -164,23 +159,11 @@ def get_css_styles(version: str, watermark: str | None = None) -> str:
     @page {{
         size: A4;
         margin: 2cm;
-        @bottom-left {{
-            content: "(C) {current_year} {AUTHOR_ATTRIBUTION} | v{version}";
-            font-family: 'Helvetica', sans-serif;
-            font-size: 8pt;
-            color: #999;
-        }}
         @bottom-center {{
             content: counter(page);
             font-family: 'Helvetica', sans-serif;
             font-size: 10pt;
             color: #666;
-        }}
-        @bottom-right {{
-            content: "Exclusive cohort materials - Please do not share";
-            font-family: 'Helvetica', sans-serif;
-            font-size: 8pt;
-            color: #999;
         }}
     }}
     {watermark_css}
@@ -335,12 +318,12 @@ def get_css_styles(version: str, watermark: str | None = None) -> str:
         text-decoration: none;
     }}
 
-    /* Page break for each lesson */
-    .lesson {{
+    /* Page break for each section */
+    .section {{
         page-break-before: always;
     }}
 
-    .lesson:first-child {{
+    .section:first-child {{
         page-break-before: avoid;
     }}
 
@@ -435,28 +418,23 @@ def get_epub_css() -> str:
         background-color: #3498db;
         color: white;
     }
-
-    .copyright {
-        margin-top: 2em;
-        padding-top: 1em;
-        border-top: 1px solid #eee;
-        font-size: 0.8em;
-        color: #999;
-        text-align: center;
-    }
     """
 
 
-def generate_epub(input_path: Path, output_dir: Path, title: str | None = None) -> Path:
+def generate_epub(
+    input_path: Path,
+    output_dir: Path,
+    title: str | None = None,
+    author: str | None = None,
+) -> Path:
     """Generate EPUB from markdown file(s).
 
     Args:
         input_path: Path to a markdown file or directory containing markdown files
         output_dir: Directory to write the output file
         title: Optional title for the EPUB (defaults to input path name)
+        author: Optional author name for metadata
     """
-    version = get_export_version()
-
     if not input_path.exists():
         print(f"Error: Path not found: {input_path}")
         sys.exit(1)
@@ -471,16 +449,17 @@ def generate_epub(input_path: Path, output_dir: Path, title: str | None = None) 
     name = input_path.stem if input_path.is_file() else input_path.name
     doc_title = title or name.replace("-", " ").replace("_", " ").title()
 
-    print(f"Found {len(md_files)} markdown file(s) in {input_path} (v{version})")
+    print(f"Found {len(md_files)} markdown file(s) in {input_path}")
 
     # Create EPUB book
     book = epub.EpubBook()
 
     # Set metadata
-    book.set_identifier(f"md2pdf-{name}-v{version}")
+    book.set_identifier(f"mdweaver-{name}-{datetime.datetime.now().strftime('%Y%m%d')}")
     book.set_title(doc_title)
     book.set_language("en")
-    book.add_author(AUTHOR_ATTRIBUTION)
+    if author:
+        book.add_author(author)
 
     # Add CSS
     css = epub.EpubItem(
@@ -491,15 +470,6 @@ def generate_epub(input_path: Path, output_dir: Path, title: str | None = None) 
     )
     book.add_item(css)
 
-    # Copyright notice
-    current_year = datetime.datetime.now().year
-    copyright_html = f"""
-    <div class="copyright">
-        <p>&copy; {current_year} {AUTHOR_ATTRIBUTION} | v{version}</p>
-        <p>Exclusive cohort materials - Please do not share</p>
-    </div>
-    """
-
     # Create chapters from markdown files
     chapters = []
     for i, md_file in enumerate(md_files):
@@ -509,19 +479,19 @@ def generate_epub(input_path: Path, output_dir: Path, title: str | None = None) 
         html_content = convert_md_to_html(md_content)
 
         # Extract title from first h1 or use filename
-        title = md_file.stem.split("-", 1)[-1].replace("-", " ").title()
+        chapter_title = md_file.stem.split("-", 1)[-1].replace("-", " ").title()
         h1_match = re.search(r"<h1[^>]*>(.*?)</h1>", html_content)
         if h1_match:
             # Unescape HTML entities for cleaner TOC display
-            title = h1_match.group(1).replace("&lt;", "<").replace("&gt;", ">")
+            chapter_title = h1_match.group(1).replace("&lt;", "<").replace("&gt;", ">")
 
         # Create chapter
         chapter = epub.EpubHtml(
-            title=title,
+            title=chapter_title,
             file_name=f"chapter_{i + 1:02d}.xhtml",
             lang="en",
         )
-        chapter.content = f"<html><body>{html_content}{copyright_html}</body></html>"
+        chapter.content = f"<html><body>{html_content}</body></html>"
         chapter.add_item(css)
 
         book.add_item(chapter)
@@ -539,7 +509,7 @@ def generate_epub(input_path: Path, output_dir: Path, title: str | None = None) 
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Write EPUB file
-    output_file = output_dir / f"{name}_v{version}.epub"
+    output_file = output_dir / f"{name}.epub"
     print(f"\nGenerating EPUB: {output_file}")
 
     epub.write_epub(output_file, book)
@@ -562,7 +532,13 @@ def generate_pdf(
         title: Optional title for the PDF (defaults to input path name)
         watermark: Optional watermark text to display diagonally across pages
     """
-    version = get_export_version()
+    if not WEASYPRINT_AVAILABLE:
+        print("Error: PDF generation requires WeasyPrint system dependencies.")
+        print(
+            "Install them with: brew install pango (macOS) or apt install libpango-1.0-0 (Linux)"
+        )
+        print("See: https://doc.courtbouillon.org/weasyprint/stable/first_steps.html")
+        sys.exit(1)
 
     if not input_path.exists():
         print(f"Error: Path not found: {input_path}")
@@ -578,18 +554,17 @@ def generate_pdf(
     name = input_path.stem if input_path.is_file() else input_path.name
     doc_title = title or name.replace("-", " ").replace("_", " ").title()
 
-    print(f"Found {len(md_files)} markdown file(s) in {input_path} (v{version})")
+    print(f"Found {len(md_files)} markdown file(s) in {input_path}")
 
     # Convert each markdown file to HTML
     html_sections = []
-    for i, md_file in enumerate(md_files):
+    for md_file in md_files:
         print(f"  Processing: {md_file.name}")
         md_content = md_file.read_text(encoding="utf-8")
         html_content = convert_md_to_html(md_content)
 
-        # Wrap in a div with lesson class for page breaks
-        css_class = "lesson"
-        html_sections.append(f'<div class="{css_class}">\n{html_content}\n</div>')
+        # Wrap in a div with section class for page breaks
+        html_sections.append(f'<div class="section">\n{html_content}\n</div>')
 
     # Combine all sections
     combined_html = "\n".join(html_sections)
@@ -611,10 +586,10 @@ def generate_pdf(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Generate PDF
-    output_file = output_dir / f"{name}_v{version}.pdf"
+    output_file = output_dir / f"{name}.pdf"
     print(f"\nGenerating PDF: {output_file}")
 
-    css = CSS(string=get_css_styles(version, watermark))
+    css = CSS(string=get_css_styles(watermark))
     HTML(string=full_html).write_pdf(output_file, stylesheets=[css])
 
     print(f"PDF generated successfully: {output_file}")
@@ -623,7 +598,7 @@ def generate_pdf(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Generate PDF and/or EPUB from markdown files"
+        description="Weave markdown files into beautifully formatted PDFs and EPUBs"
     )
     parser.add_argument(
         "input",
@@ -648,9 +623,14 @@ def main():
         help="Document title (default: derived from input path)",
     )
     parser.add_argument(
+        "-a",
+        "--author",
+        help="Author name for EPUB metadata",
+    )
+    parser.add_argument(
         "-w",
         "--watermark",
-        help="Optional watermark text to display diagonally across PDF pages",
+        help="Watermark text to display diagonally across PDF pages",
     )
 
     args = parser.parse_args()
@@ -662,7 +642,7 @@ def main():
         generate_pdf(input_path, output_dir, args.title, args.watermark)
 
     if args.format in ("epub", "both"):
-        generate_epub(input_path, output_dir, args.title)
+        generate_epub(input_path, output_dir, args.title, args.author)
 
 
 if __name__ == "__main__":
