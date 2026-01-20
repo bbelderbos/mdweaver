@@ -48,6 +48,18 @@ Or using pip:
 pip install mdweaver
 ```
 
+### macOS (Homebrew / Apple Silicon) – WeasyPrint dylib lookup
+
+If `import weasyprint` fails with a `libgobject-2.0-0` / `gobject` missing error on macOS, install the native deps with Homebrew and expose Homebrew’s lib directory to the dynamic loader:
+
+```bash
+brew install glib pango cairo gdk-pixbuf libffi
+export DYLD_FALLBACK_LIBRARY_PATH="$(brew --prefix)/lib:${DYLD_FALLBACK_LIBRARY_PATH}"
+uv run python -c "import weasyprint; print(weasyprint.__version__)"
+```
+
+You can add the `export DYLD_FALLBACK_LIBRARY_PATH=...` line to your shell config (typically `~/.zshrc` on macOS; or `~/.bashrc`) to make it persistent across sessions.
+
 ## CLI Usage
 
 The basic syntax is `mdweaver <input> [options]`.
