@@ -16,20 +16,20 @@ from pathlib import Path, PurePosixPath
 
 import markdown
 from ebooklib import epub
-from pygments.formatters import HtmlFormatter
+from pygments.formatters.html import HtmlFormatter
 
 # WeasyPrint requires system libraries (pango, cairo, etc.)
 # Import lazily to allow other functionality to work without it
 try:
-    from weasyprint import CSS, HTML
+    from weasyprint import CSS as _CSS, HTML as _HTML
 
-    WEASYPRINT_AVAILABLE = True
+    CSS = _CSS
+    HTML = _HTML
 except OSError:
-    WEASYPRINT_AVAILABLE = False
     CSS = None
     HTML = None
 
-
+WEASYPRINT_AVAILABLE = CSS is not None and HTML is not None
 DEFAULT_EXCLUDES: list[str] = [
     "**/.git/**",
     "**/.venv/**",
@@ -546,6 +546,11 @@ def generate_pdf(
 </body>
 </html>
 """
+    if not WEASYPRINT_AVAILABLE:
+        print("Error: PDF generation requires WeasyPrint system dependencies.")
+        sys.exit(1)
+
+    assert CSS is not None and HTML is not None
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
