@@ -125,7 +125,7 @@ def get_css_styles(watermark: str | None = None) -> str:
 
     # Build watermark CSS only if watermark text is provided
     watermark_css = ""
-    if watermark:
+    if watermark is not None:
         watermark_css = f"""
     /* Subtle diagonal watermark */
     body::before {{
@@ -439,7 +439,7 @@ def generate_epub(
     book.set_identifier(f"mdweaver-{name}-{datetime.datetime.now().strftime('%Y%m%d')}")
     book.set_title(doc_title)
     book.set_language("en")
-    if author:
+    if author is not None:
         book.add_author(author)
 
     # Add CSS
