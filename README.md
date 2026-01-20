@@ -107,21 +107,7 @@ mdweaver/
 ### Running Tests
 
 ```bash
-uv run pytest tests/ -v
+uv run pytest
 ```
 
 *Note: You might see a skipped test for PDF generation if the system dependencies (WeasyPrint libs) are not installed.*
-
-### Building and Publishing
-
-To build the package distribution:
-
-```bash
-uv build
-```
-
-To publish to PyPI:
-
-```bash
-uv publish
-```
