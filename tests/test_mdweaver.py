@@ -5,6 +5,8 @@ import pytest
 from mdweaver.generate_pdf import (
     WEASYPRINT_AVAILABLE,
     convert_md_to_html,
+    generate_epub,
+    generate_pdf,
     get_md_files,
     preprocess_markdown,
 )
@@ -172,8 +174,6 @@ class TestGenerateFunctions:
     )
     def test_generate_pdf_creates_file(self, sample_md_file, temp_dir):
         """Should create a PDF file from markdown."""
-        from mdweaver.generate_pdf import generate_pdf
-
         output_dir = temp_dir / "output"
         result = generate_pdf(sample_md_file, output_dir)
         assert result.exists()
@@ -181,8 +181,6 @@ class TestGenerateFunctions:
 
     def test_generate_epub_creates_file(self, sample_md_file, temp_dir):
         """Should create an EPUB file from markdown."""
-        from mdweaver.generate_pdf import generate_epub
-
         output_dir = temp_dir / "output"
         result = generate_epub(sample_md_file, output_dir)
         assert result.exists()
@@ -190,16 +188,12 @@ class TestGenerateFunctions:
 
     def test_generate_with_custom_title(self, sample_md_file, temp_dir):
         """Should use custom title when provided."""
-        from mdweaver.generate_pdf import generate_epub
-
         output_dir = temp_dir / "output"
         result = generate_epub(sample_md_file, output_dir, title="Custom Title")
         assert result.exists()
 
     def test_generate_from_directory(self, sample_md_dir, temp_dir):
         """Should generate from directory with multiple files."""
-        from mdweaver.generate_pdf import generate_epub
-
         output_dir = temp_dir / "output"
         result = generate_epub(sample_md_dir, output_dir)
         assert result.exists()
