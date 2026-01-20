@@ -1,0 +1,22 @@
+[project]
+name = "md2pdf"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Bob Belderbos", email = "bobbelderbos@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "ebooklib>=0.20",
+    "markdown>=3.5",
+    "pygments>=2.17",
+    "weasyprint>=60.0",
+]
+
+[project.scripts]
+md2pdf = "md2pdf:main"
+
+[build-system]
+requires = ["uv_build>=0.9.2,<0.10.0"]
+build-backend = "uv_build"
