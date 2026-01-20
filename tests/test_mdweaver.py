@@ -3,6 +3,7 @@
 import pytest
 
 from mdweaver.generate_pdf import (
+    DEFAULT_EXCLUDES,
     WEASYPRINT_AVAILABLE,
     convert_md_to_html,
     generate_epub,
@@ -58,6 +59,25 @@ class TestGetMdFiles:
         files = get_md_files(sample_md_dir, recursive=True)
         paths = [str(f) for f in files]
         assert paths == sorted(paths)
+
+    def test_directory_recursive_with_exclude_file_pattern(self, sample_md_dir):
+        """Should exclude matching markdown files when exclude patterns are provided."""
+        files = get_md_files(
+            sample_md_dir, recursive=True, exclude=["**/03-advanced.md"]
+        )
+        names = [f.name for f in files]
+        assert len(files) == 2
+        assert "03-advanced.md" not in names
+
+    def test_directory_default_excludes_skip_output_dir(self, sample_md_dir):
+        """Should skip markdown files under default excluded dirs (e.g. output/)."""
+        output_dir = sample_md_dir / "output"
+        output_dir.mkdir()
+        (output_dir / "ignored.md").write_text("# Ignored\n", encoding="utf-8")
+
+        files = get_md_files(sample_md_dir, recursive=True, exclude=DEFAULT_EXCLUDES)
+        paths = [str(f) for f in files]
+        assert not any("output/ignored.md" in p.replace("\\", "/") for p in paths)
 
 
 class TestPreprocessMarkdown:

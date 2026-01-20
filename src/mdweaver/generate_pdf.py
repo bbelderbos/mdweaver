@@ -12,7 +12,7 @@ import argparse
 import datetime
 import re
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import markdown
 from ebooklib import epub
@@ -28,6 +28,22 @@ except OSError:
     WEASYPRINT_AVAILABLE = False
     CSS = None
     HTML = None
+
+
+DEFAULT_EXCLUDES: list[str] = [
+    "**/.git/**",
+    "**/.venv/**",
+    "**/venv/**",
+    "**/node_modules/**",
+    "**/__pycache__/**",
+    "**/.pytest_cache/**",
+    "**/output/**",
+]
+
+
+def _matches_any(path: Path, patterns: list[str]) -> bool:
+    p = PurePosixPath(path.as_posix())
+    return any(p.match(pat) for pat in patterns)
 
 
 def preprocess_markdown(md_content: str) -> str:
@@ -84,16 +100,21 @@ def preprocess_markdown(md_content: str) -> str:
     return "\n".join(processed_lines)
 
 
-def get_md_files(path: Path, recursive: bool = True) -> list[Path]:
-    """Get all markdown files from a file or directory."""
+def get_md_files(
+    path: Path,
+    recursive: bool = True,
+    exclude: list[str] | None = None,
+) -> list[Path]:
+    """Get all markdown files from a file or directory, with exclude patterns."""
+    exclude = exclude or []
+
     if path.is_file():
-        if path.suffix.lower() == ".md":
+        if path.suffix.lower() == ".md" and not _matches_any(path, exclude):
             return [path]
         return []
 
-    pattern = "**/*.md" if recursive else "*.md"
-    md_files = sorted(path.glob(pattern))
-    return [f for f in md_files if f.is_file()]
+    it = path.rglob("*.md") if recursive else path.glob("*.md")
+    return [f for f in sorted(it) if f.is_file() and not _matches_any(f, exclude)]
 
 
 def convert_md_to_html(md_content: str) -> str:
@@ -120,14 +141,11 @@ def convert_md_to_html(md_content: str) -> str:
 
 def get_css_styles(watermark: str | None = None) -> str:
     """Generate CSS styles including Pygments syntax highlighting."""
-    # Get Pygments CSS for code highlighting (using a nice theme)
     pygments_css = HtmlFormatter(style="monokai").get_style_defs(".highlight")
 
-    # Build watermark CSS only if watermark text is provided
     watermark_css = ""
     if watermark is not None:
         watermark_css = f"""
-    /* Subtle diagonal watermark */
     body::before {{
         content: "{watermark}";
         position: fixed;
@@ -205,7 +223,6 @@ def get_css_styles(watermark: str | None = None) -> str:
         text-align: justify;
     }}
 
-    /* Inline code */
     code {{
         font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
         font-size: 9.5pt;
@@ -215,7 +232,6 @@ def get_css_styles(watermark: str | None = None) -> str:
         color: #c0392b;
     }}
 
-    /* Code blocks */
     .highlight {{
         background-color: #272822;
         border-radius: 6px;
@@ -242,7 +258,6 @@ def get_css_styles(watermark: str | None = None) -> str:
         font-size: 9pt;
     }}
 
-    /* Lists */
     ul, ol {{
         margin-bottom: 12px;
         padding-left: 25px;
@@ -252,13 +267,11 @@ def get_css_styles(watermark: str | None = None) -> str:
         margin-bottom: 6px;
     }}
 
-    /* Nested lists */
     li > ul, li > ol {{
         margin-top: 6px;
         margin-bottom: 6px;
     }}
 
-    /* Strong and emphasis */
     strong {{
         color: #2c3e50;
     }}
@@ -267,7 +280,6 @@ def get_css_styles(watermark: str | None = None) -> str:
         color: #555;
     }}
 
-    /* Tables */
     table {{
         border-collapse: collapse;
         width: 100%;
@@ -290,7 +302,6 @@ def get_css_styles(watermark: str | None = None) -> str:
         background-color: #f9f9f9;
     }}
 
-    /* Blockquotes */
     blockquote {{
         border-left: 4px solid #3498db;
         margin: 15px 0;
@@ -300,13 +311,11 @@ def get_css_styles(watermark: str | None = None) -> str:
         color: #555;
     }}
 
-    /* Links */
     a {{
         color: #3498db;
         text-decoration: none;
     }}
 
-    /* Page break for each section */
     .section {{
         page-break-before: always;
     }}
@@ -315,14 +324,12 @@ def get_css_styles(watermark: str | None = None) -> str:
         page-break-before: avoid;
     }}
 
-    /* Horizontal rules */
     hr {{
         border: none;
         border-top: 2px solid #eee;
         margin: 30px 0;
     }}
 
-    /* Pygments syntax highlighting */
     {pygments_css}
     """
 
@@ -414,35 +421,32 @@ def generate_epub(
     output_dir: Path,
     title: str | None = None,
     author: str | None = None,
+    exclude: list[str] | None = None,
 ) -> Path:
     """Generate EPUB from markdown file(s)."""
     if not input_path.exists():
         print(f"Error: Path not found: {input_path}")
         sys.exit(1)
 
-    md_files = get_md_files(input_path)
+    md_files = get_md_files(input_path, exclude=exclude)
 
     if not md_files:
         print(f"Error: No markdown files found in {input_path}")
         sys.exit(1)
 
-    # Derive name from input path
     name = input_path.stem if input_path.is_file() else input_path.name
     doc_title = title or name.replace("-", " ").replace("_", " ").title()
 
     print(f"Found {len(md_files)} markdown file(s) in {input_path}")
 
-    # Create EPUB book
     book = epub.EpubBook()
 
-    # Set metadata
     book.set_identifier(f"mdweaver-{name}-{datetime.datetime.now().strftime('%Y%m%d')}")
     book.set_title(doc_title)
     book.set_language("en")
     if author is not None:
         book.add_author(author)
 
-    # Add CSS
     css = epub.EpubItem(
         uid="style",
         file_name="style/main.css",
@@ -451,7 +455,6 @@ def generate_epub(
     )
     book.add_item(css)
 
-    # Create chapters from markdown files
     chapters = []
     for i, md_file in enumerate(md_files):
         print(f"  Processing: {md_file.name}")
@@ -459,14 +462,11 @@ def generate_epub(
         md_content = md_file.read_text(encoding="utf-8")
         html_content = convert_md_to_html(md_content)
 
-        # Extract title from first h1 or use filename
         chapter_title = md_file.stem.split("-", 1)[-1].replace("-", " ").title()
         h1_match = re.search(r"<h1[^>]*>(.*?)</h1>", html_content)
         if h1_match:
-            # Unescape HTML entities for cleaner TOC display
             chapter_title = h1_match.group(1).replace("&lt;", "<").replace("&gt;", ">")
 
-        # Create chapter
         chapter = epub.EpubHtml(
             title=chapter_title,
             file_name=f"chapter_{i + 1:02d}.xhtml",
@@ -478,18 +478,14 @@ def generate_epub(
         book.add_item(chapter)
         chapters.append(chapter)
 
-    # Define table of contents and spine
     book.toc = chapters
     book.spine = ["nav"] + chapters
 
-    # Add navigation files
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
 
-    # Ensure output directory exists
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Write EPUB file
     output_file = output_dir / f"{name}.epub"
     print(f"\nGenerating EPUB: {output_file}")
 
@@ -504,6 +500,7 @@ def generate_pdf(
     output_dir: Path,
     title: str | None = None,
     watermark: str | None = None,
+    exclude: list[str] | None = None,
 ) -> Path:
     """Generate PDF from markdown file(s)."""
     if not WEASYPRINT_AVAILABLE:
@@ -518,32 +515,26 @@ def generate_pdf(
         print(f"Error: Path not found: {input_path}")
         sys.exit(1)
 
-    md_files = get_md_files(input_path)
+    md_files = get_md_files(input_path, exclude=exclude)
 
     if not md_files:
         print(f"Error: No markdown files found in {input_path}")
         sys.exit(1)
 
-    # Derive name from input path
     name = input_path.stem if input_path.is_file() else input_path.name
     doc_title = title or name.replace("-", " ").replace("_", " ").title()
 
     print(f"Found {len(md_files)} markdown file(s) in {input_path}")
 
-    # Convert each markdown file to HTML
     html_sections = []
     for md_file in md_files:
         print(f"  Processing: {md_file.name}")
         md_content = md_file.read_text(encoding="utf-8")
         html_content = convert_md_to_html(md_content)
-
-        # Wrap in a div with section class for page breaks
         html_sections.append(f'<div class="section">\n{html_content}\n</div>')
 
-    # Combine all sections
     combined_html = "\n".join(html_sections)
 
-    # Create full HTML document
     full_html = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -556,10 +547,8 @@ def generate_pdf(
 </html>
 """
 
-    # Ensure output directory exists
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Generate PDF
     output_file = output_dir / f"{name}.pdf"
     print(f"\nGenerating PDF: {output_file}")
 
@@ -606,17 +595,27 @@ def main():
         "--watermark",
         help="Watermark text to display diagonally across PDF pages",
     )
+    parser.add_argument(
+        "--exclude",
+        action="append",
+        default=[],
+        help="Glob pattern to exclude (repeatable), e.g. '**/dist/**' or '**/README.md'",
+    )
 
     args = parser.parse_args()
 
     input_path = Path(args.input).resolve()
     output_dir = Path(args.output)
 
+    exclude = DEFAULT_EXCLUDES + (args.exclude or [])
+
     if args.format in ("pdf", "both"):
-        generate_pdf(input_path, output_dir, args.title, args.watermark)
+        generate_pdf(
+            input_path, output_dir, args.title, args.watermark, exclude=exclude
+        )
 
     if args.format in ("epub", "both"):
-        generate_epub(input_path, output_dir, args.title, args.author)
+        generate_epub(input_path, output_dir, args.title, args.author, exclude=exclude)
 
 
 if __name__ == "__main__":

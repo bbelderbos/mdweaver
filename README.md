@@ -2,19 +2,22 @@
 
 Weave markdown files into beautifully formatted PDFs and EPUBs.
 
-`mdweaver` is a command-line tool that converts your Markdown documentation into professional-looking PDF and EPUB files. It handles syntax highlighting, recursive file discovery, and common rendering issues automatically.
+`mdweaver` is a command-line tool that converts your Markdown documentation into professional-looking PDF and EPUB files. It handles syntax highlighting, recursive file discovery, common rendering issues, and sensible default exclusions automatically.
 
 ## Features
 
 - **Multiple Formats**: Generate PDF, EPUB, or both simultaneously.
 - **Recursive Processing**: Convert a single file or an entire directory of documentation.
+- **Default Exclusions**: Skips common “noise” directories by default:
+  - `.git`, `.venv` / `venv`, `node_modules`, `__pycache__`, `.pytest_cache`, `output`
 - **Syntax Highlighting**: Includes Pygments support (Monokai theme) for code blocks.
 - **Smart Preprocessing**: Automatically fixes common Markdown issues like:
   - Escaping generic type parameters (e.g., `Result<T, E>`).
   - Correcting list spacing for proper rendering.
 - **Customization**:
-  - Add watermarks to PDFs (e.g., "DRAFT").
+  - Add watermarks to PDFs (e.g., `"DRAFT"`).
   - Set custom document titles and author metadata.
+  - Exclude additional paths via glob patterns.
 - **Clean Typography**: Uses optimized CSS for print (A4) and e-reader layouts.
 
 ## Prerequisites
@@ -31,7 +34,7 @@ brew install pango
 sudo apt install libpango-1.0-0 libpangoft2-1.0-0
 ```
 
-See the [WeasyPrint documentation](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html) for other platforms.
+See the WeasyPrint documentation for other platforms: https://doc.courtbouillon.org/weasyprint/stable/first_steps.html
 
 ## Installation
 
@@ -71,9 +74,14 @@ The basic syntax is `mdweaver <input> [options]`.
 mdweaver document.md
 ```
 
-**Convert a directory (recursively):**
+**Convert a directory (recursively), with defaults excluded:**
 ```bash
 mdweaver ./docs
+```
+
+**Exclude additional paths (repeatable):**
+```bash
+mdweaver ./docs --exclude "**/dist/**" --exclude "**/build/**"
 ```
 
 **Generate EPUB with metadata:**
@@ -99,6 +107,21 @@ mdweaver ./content -f both
 - `-t, --title`: Document title (default: derived from filename/path).
 - `-a, --author`: Author name (for EPUB metadata).
 - `-w, --watermark`: Watermark text to display diagonally across PDF pages.
+- `--exclude`: Glob pattern to exclude (repeatable), e.g. `--exclude "**/dist/**"`.
+
+### Default excludes
+
+When scanning directories recursively, `mdweaver` excludes these patterns by default:
+
+- `**/.git/**`
+- `**/.venv/**`
+- `**/venv/**`
+- `**/node_modules/**`
+- `**/__pycache__/**`
+- `**/.pytest_cache/**`
+- `**/output/**`
+
+You can add more exclusions using `--exclude`.
 
 ## Project Structure
 
