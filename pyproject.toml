@@ -27,12 +27,6 @@ dependencies = [
     "weasyprint>=60.0",
 ]
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.0",
-    "pytest-cov>=4.0",
-]
-
 [project.scripts]
 mdweaver = "mdweaver.generate_pdf:main"
 
@@ -53,6 +47,8 @@ pythonpath = ["src"]
 
 [dependency-groups]
 dev = [
+    "pytest>=8.0",
+    "pytest-cov>=4.0",
     "ruff>=0.9.0",
     "tbump>=6.11.0",
     "ty>=0.0.12",
