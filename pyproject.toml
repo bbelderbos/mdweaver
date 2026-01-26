@@ -53,5 +53,7 @@ pythonpath = ["src"]
 
 [dependency-groups]
 dev = [
+    "ruff>=0.9.0",
+    "tbump>=6.11.0",
     "ty>=0.0.12",
 ]
