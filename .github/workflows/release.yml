@@ -4,7 +4,7 @@ name: Release
 on:
   push:
     tags:
-      - "*"
+      - "v*"
 
 # These permissions are necessary for trusted publishing to PyPI,
 # and creating a GitHub Release
@@ -21,7 +21,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v3
         with:
-          version: "latest"
+          version: "0.5"
           enable-cache: true
 
       - name: Install dependencies
@@ -45,7 +45,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v3
         with:
-          version: "latest"
+          version: "0.5"
           enable-cache: true
 
       - name: Install dependencies
@@ -65,7 +65,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v3
         with:
-          version: "latest"
+          version: "0.5"
           enable-cache: true
 
       - name: Build package
