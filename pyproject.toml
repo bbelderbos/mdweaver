@@ -16,7 +16,6 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
     "Topic :: Documentation",
     "Topic :: Text Processing :: Markup :: Markdown",
 ]
@@ -25,12 +24,6 @@ dependencies = [
     "markdown>=3.5",
     "pygments>=2.17",
     "weasyprint>=60.0",
-]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.0",
-    "pytest-cov>=4.0",
 ]
 
 [project.scripts]
@@ -50,3 +43,12 @@ packages = ["src/mdweaver"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.9.0",
+    "tbump>=6.11.0",
+    "ty>=0.0.12",
+]

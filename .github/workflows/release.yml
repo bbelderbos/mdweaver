@@ -1,0 +1,91 @@
+name: Release
+
+# This workflow runs on any tag push
+on:
+  push:
+    tags:
+      - "v*"
+
+# These permissions are necessary for trusted publishing to PyPI,
+# and creating a GitHub Release
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.5"
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Run type checking
+        run: uv run ty check .
+
+      - name: Run linting
+        run: uv run ruff check .
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.5"
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --dev --python ${{ matrix.python-version }}
+
+      - name: Run tests
+        run: uv run pytest
+
+  build-and-publish:
+    # This job only runs if the lint and test jobs pass
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.5"
+          enable-cache: true
+
+      - name: Build package
+        run: uv build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+      - name: Create changelog text
+        id: changelog
+        uses: loopwerk/tag-changelog@v1
+        with:
+          # The GITHUB_TOKEN is automatically provided by GitHub Actions
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # Exclude common, uninteresting commit types from the changelog
+          exclude_types: other,doc,chore,build
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          # Use the changelog text generated in the previous step as the release body
+          body: ${{ steps.changelog.outputs.changes }}
+          token: ${{ secrets.GITHUB_TOKEN }}
