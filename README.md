@@ -16,6 +16,8 @@ Weave markdown files into beautifully formatted PDFs and EPUBs.
   - Correcting list spacing for proper rendering.
 - **Customization**:
   - Add watermarks to PDFs (e.g., `"DRAFT"`).
+  - Add branded page headers (e.g., `"belderbos.dev · Python · Rust · AI"`).
+  - Override the default styles with a custom CSS file.
   - Set custom document titles and author metadata.
   - Exclude additional paths via glob patterns.
 - **Clean Typography**: Uses optimized CSS for print (A4) and e-reader layouts.
@@ -94,6 +96,16 @@ mdweaver ./content -f epub -t "My Book" -a "Author Name"
 mdweaver ./content -f pdf -w "DRAFT" -o ./build
 ```
 
+**Generate PDF with a branded page header:**
+```bash
+mdweaver document.md --header "belderbos.dev · Python · Rust · AI"
+```
+
+**Generate PDF with custom CSS:**
+```bash
+mdweaver document.md --css my-theme.css
+```
+
 **Generate both formats:**
 ```bash
 mdweaver ./content -f both
@@ -107,6 +119,8 @@ mdweaver ./content -f both
 - `-t, --title`: Document title (default: derived from filename/path).
 - `-a, --author`: Author name (for EPUB metadata).
 - `-w, --watermark`: Watermark text to display diagonally across PDF pages.
+- `--css`: Path to a custom CSS file to use instead of the default styles.
+- `--header`: Text to display in the page header on every PDF page.
 - `--exclude`: Glob pattern to exclude (repeatable), e.g. `--exclude "**/dist/**"`.
 
 ### Default excludes

@@ -21,7 +21,8 @@ from pygments.formatters.html import HtmlFormatter
 # WeasyPrint requires system libraries (pango, cairo, etc.)
 # Import lazily to allow other functionality to work without it
 try:
-    from weasyprint import CSS as _CSS, HTML as _HTML
+    from weasyprint import CSS as _CSS
+    from weasyprint import HTML as _HTML
 
     CSS = _CSS
     HTML = _HTML
@@ -139,7 +140,10 @@ def convert_md_to_html(md_content: str) -> str:
     return md.convert(md_content)
 
 
-def get_css_styles(watermark: str | None = None) -> str:
+def get_css_styles(
+    watermark: str | None = None,
+    header: str | None = None,
+) -> str:
     """Generate CSS styles including Pygments syntax highlighting."""
     pygments_css = HtmlFormatter(style="monokai").get_style_defs(".highlight")
 
@@ -161,10 +165,23 @@ def get_css_styles(watermark: str | None = None) -> str:
     }}
     """
 
+    header_css = ""
+    if header is not None:
+        header_css = f"""
+        @top-center {{
+            content: "{header}";
+            font-family: 'Helvetica', sans-serif;
+            font-size: 8pt;
+            color: #999;
+            letter-spacing: 0.5pt;
+        }}
+    """
+
     return f"""
     @page {{
         size: A4;
         margin: 2cm;
+    {header_css}
         @bottom-center {{
             content: counter(page);
             font-family: 'Helvetica', sans-serif;
@@ -501,6 +518,8 @@ def generate_pdf(
     title: str | None = None,
     watermark: str | None = None,
     exclude: list[str] | None = None,
+    custom_css: str | None = None,
+    header: str | None = None,
 ) -> Path:
     """Generate PDF from markdown file(s)."""
     if not WEASYPRINT_AVAILABLE:
@@ -557,7 +576,11 @@ def generate_pdf(
     output_file = output_dir / f"{name}.pdf"
     print(f"\nGenerating PDF: {output_file}")
 
-    css = CSS(string=get_css_styles(watermark))
+    if custom_css is not None:
+        css_string = Path(custom_css).read_text(encoding="utf-8")
+    else:
+        css_string = get_css_styles(watermark, header)
+    css = CSS(string=css_string)
     HTML(string=full_html).write_pdf(output_file, stylesheets=[css])
 
     print(f"PDF generated successfully: {output_file}")
@@ -601,6 +624,14 @@ def main():
         help="Watermark text to display diagonally across PDF pages",
     )
     parser.add_argument(
+        "--css",
+        help="Path to a custom CSS file to use instead of the default styles",
+    )
+    parser.add_argument(
+        "--header",
+        help="Text to display in the page header (e.g. 'belderbos.dev · Python · Rust · AI')",
+    )
+    parser.add_argument(
         "--exclude",
         action="append",
         default=[],
@@ -616,7 +647,13 @@ def main():
 
     if args.format in ("pdf", "both"):
         generate_pdf(
-            input_path, output_dir, args.title, args.watermark, exclude=exclude
+            input_path,
+            output_dir,
+            args.title,
+            args.watermark,
+            exclude=exclude,
+            custom_css=args.css,
+            header=args.header,
         )
 
     if args.format in ("epub", "both"):
