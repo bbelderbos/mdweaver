@@ -10,6 +10,7 @@ from mdweaver.generate_pdf import (
     generate_pdf,
     get_md_files,
     preprocess_markdown,
+    weave_pdf,
 )
 
 
@@ -213,6 +214,15 @@ class TestGenerateFunctions:
         result = generate_pdf(sample_md_file, output_dir)
         assert result.exists()
         assert result.suffix == ".pdf"
+
+    @pytest.mark.skipif(
+        not WEASYPRINT_AVAILABLE, reason="WeasyPrint system dependencies not available"
+    )
+    def test_weave_pdf_returns_pdf_bytes(self):
+        """Should render markdown to in-memory PDF bytes."""
+        out = weave_pdf("# Title\n\nBody text.")
+        assert isinstance(out, bytes)
+        assert out[:5] == b"%PDF-"
 
     def test_generate_epub_creates_file(self, sample_md_file, temp_dir):
         """Should create an EPUB file from markdown."""

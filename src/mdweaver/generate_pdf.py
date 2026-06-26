@@ -512,6 +512,26 @@ def generate_epub(
     return output_file
 
 
+def weave_pdf(markdown_text: str, css: str | None = None) -> bytes:
+    """Render a markdown string to PDF bytes in memory (no files touched)."""
+    if not WEASYPRINT_AVAILABLE:
+        raise RuntimeError(
+            "PDF generation requires WeasyPrint system libraries (pango, cairo). "
+            "See https://doc.courtbouillon.org/weasyprint/stable/first_steps.html"
+        )
+    assert CSS is not None and HTML is not None
+
+    body = convert_md_to_html(markdown_text)
+    full_html = (
+        "<!DOCTYPE html><html><head><meta charset='utf-8'></head>"
+        f"<body>{body}</body></html>"
+    )
+    stylesheet = CSS(string=css if css is not None else get_css_styles())
+    pdf = HTML(string=full_html).write_pdf(stylesheets=[stylesheet])
+    assert pdf is not None
+    return pdf
+
+
 def generate_pdf(
     input_path: Path,
     output_dir: Path,

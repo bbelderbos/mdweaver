@@ -8,6 +8,7 @@ from mdweaver.generate_pdf import (
     get_md_files,
     main,
     preprocess_markdown,
+    weave_pdf,
 )
 
 __all__ = [
@@ -18,4 +19,5 @@ __all__ = [
     "get_md_files",
     "main",
     "preprocess_markdown",
+    "weave_pdf",
 ]
