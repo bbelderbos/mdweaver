@@ -10,6 +10,7 @@ Usage:
 
 import argparse
 import datetime
+import html
 import re
 import sys
 from pathlib import Path, PurePosixPath
@@ -99,6 +100,11 @@ def preprocess_markdown(md_content: str) -> str:
         processed_lines.append(line)
 
     return "\n".join(processed_lines)
+
+
+def html_to_text(fragment: str) -> str:
+    """Strip inline tags and unescape entities to get plain text for metadata."""
+    return html.unescape(re.sub(r"<[^>]+>", "", fragment)).strip()
 
 
 def get_md_files(
@@ -482,7 +488,7 @@ def generate_epub(
         chapter_title = md_file.stem.split("-", 1)[-1].replace("-", " ").title()
         h1_match = re.search(r"<h1[^>]*>(.*?)</h1>", html_content)
         if h1_match:
-            chapter_title = h1_match.group(1).replace("&lt;", "<").replace("&gt;", ">")
+            chapter_title = html_to_text(h1_match.group(1))
 
         chapter = epub.EpubHtml(
             title=chapter_title,

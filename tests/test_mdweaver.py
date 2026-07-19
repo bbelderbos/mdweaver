@@ -1,5 +1,8 @@
 """Tests for mdweaver core functionality."""
 
+import html
+import zipfile
+
 import pytest
 
 from mdweaver.generate_pdf import (
@@ -9,6 +12,7 @@ from mdweaver.generate_pdf import (
     generate_epub,
     generate_pdf,
     get_md_files,
+    html_to_text,
     preprocess_markdown,
     weave_pdf,
 )
@@ -194,6 +198,21 @@ def hello():
         assert "<code>" in html
         assert "print()" in html
 
+
+class TestHtmlToText:
+    """Tests for html_to_text helper."""
+
+    def test_unescapes_ampersand_entity(self):
+        assert (
+            html_to_text("Week 4 Review &amp; Bridging") == "Week 4 Review & Bridging"
+        )
+
+    def test_strips_inline_tags(self):
+        assert html_to_text("Intro to <code>PyO3</code>") == "Intro to PyO3"
+
+    def test_unescapes_angle_bracket_generics(self):
+        assert html_to_text("Result&lt;T, E&gt;") == "Result<T, E>"
+
     def test_bold_and_italic(self):
         """Should convert bold and italic text."""
         md = "This is **bold** and *italic*."
@@ -243,3 +262,17 @@ class TestGenerateFunctions:
         result = generate_epub(sample_md_dir, output_dir)
         assert result.exists()
         assert result.name == "docs.epub"
+
+    def test_epub_toc_does_not_double_encode_entities(self, temp_dir):
+        """Chapter titles with '&' must not become '&amp;amp;' in the TOC/nav."""
+        md_file = temp_dir / "week5.md"
+        md_file.write_text("# Week 4 Review & Bridging to Python Integration\n\nBody.")
+        result = generate_epub(md_file, temp_dir / "output")
+
+        with zipfile.ZipFile(result) as zf:
+            nav = next(n for n in zf.namelist() if n.endswith("nav.xhtml"))
+            content = zf.read(nav).decode("utf-8")
+
+        # The title the reader sees must be "&", not the double-encoded "&amp;".
+        assert "Week 4 Review & Bridging" in html.unescape(content)
+        assert "&amp;amp;" not in content
