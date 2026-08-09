@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/mdweaver-logo.png" alt="mdweaver" width="420">
+</p>
+
 # mdweaver
 
 Weave markdown files into beautifully formatted PDFs and EPUBs.
