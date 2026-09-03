@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/mdweaver-logo.png" alt="mdweaver" width="600">
+  <img src="https://raw.githubusercontent.com/bbelderbos/mdweaver/main/assets/mdweaver-logo.png" alt="mdweaver" width="600">
 </p>
 
 # mdweaver
