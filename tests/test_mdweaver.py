@@ -4,6 +4,7 @@ import html
 import zipfile
 
 import pytest
+from pypdf import PdfReader
 
 from mdweaver.generate_pdf import (
     DEFAULT_EXCLUDES,
@@ -11,6 +12,7 @@ from mdweaver.generate_pdf import (
     convert_md_to_html,
     generate_epub,
     generate_pdf,
+    get_css_styles,
     get_md_files,
     html_to_text,
     preprocess_markdown,
@@ -221,6 +223,20 @@ class TestHtmlToText:
         assert "<em>" in html or "<i>" in html
 
 
+class TestGetCssStyles:
+    """Tests for get_css_styles hr / page-break behavior."""
+
+    def test_hr_is_a_line_by_default(self):
+        css = get_css_styles()
+        assert "page-break-after: always" not in css
+        assert "border-top: 2px solid #eee" in css
+
+    def test_hr_becomes_page_break_when_enabled(self):
+        css = get_css_styles(page_break_on_hr=True)
+        assert "page-break-after: always" in css
+        assert "border-top: 2px solid #eee" not in css
+
+
 class TestGenerateFunctions:
     """Tests for generate_pdf and generate_epub (integration tests)."""
 
@@ -249,6 +265,20 @@ class TestGenerateFunctions:
         result = generate_epub(sample_md_file, output_dir)
         assert result.exists()
         assert result.suffix == ".epub"
+
+    @pytest.mark.skipif(
+        not WEASYPRINT_AVAILABLE, reason="WeasyPrint system dependencies not available"
+    )
+    def test_page_break_on_hr_adds_pages(self, temp_dir):
+        """--page-break-on-hr should split the doc at each --- into more pages."""
+        md_file = temp_dir / "sections.md"
+        md_file.write_text(
+            "# A\n\nfirst\n\n---\n\n# B\n\nsecond\n\n---\n\n# C\n\nthird\n"
+        )
+
+        plain = generate_pdf(md_file, temp_dir / "plain")
+        broken = generate_pdf(md_file, temp_dir / "broken", page_break_on_hr=True)
+        assert len(PdfReader(str(broken)).pages) > len(PdfReader(str(plain)).pages)
 
     def test_generate_with_custom_title(self, sample_md_file, temp_dir):
         """Should use custom title when provided."""

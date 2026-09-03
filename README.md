@@ -22,6 +22,7 @@ Weave markdown files into beautifully formatted PDFs and EPUBs.
   - Add watermarks to PDFs (e.g., `"DRAFT"`).
   - Add branded page headers (e.g., `"belderbos.dev · Python · Rust · AI"`).
   - Override the default styles with a custom CSS file.
+  - Start a new PDF page at each horizontal rule (`---`) with `--page-break-on-hr`.
   - Set custom document titles and author metadata.
   - Exclude additional paths via glob patterns.
 - **Clean Typography**: Uses optimized CSS for print (A4) and e-reader layouts.
@@ -125,6 +126,7 @@ mdweaver ./content -f both
 - `-w, --watermark`: Watermark text to display diagonally across PDF pages.
 - `--css`: Path to a custom CSS file to use instead of the default styles.
 - `--header`: Text to display in the page header on every PDF page.
+- `--page-break-on-hr`: Start a new page at each horizontal rule (`---`) instead of drawing a line (PDF only).
 - `--exclude`: Glob pattern to exclude (repeatable), e.g. `--exclude "**/dist/**"`.
 
 ### Default excludes

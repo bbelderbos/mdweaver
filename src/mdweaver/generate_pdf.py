@@ -43,6 +43,24 @@ DEFAULT_EXCLUDES: list[str] = [
 ]
 
 
+HR_LINE_CSS = """
+    hr {
+        border: none;
+        border-top: 2px solid #eee;
+        margin: 30px 0;
+    }
+    """
+
+HR_PAGE_BREAK_CSS = """
+    hr {
+        border: none;
+        margin: 0;
+        height: 0;
+        page-break-after: always;
+    }
+    """
+
+
 def _matches_any(path: Path, patterns: list[str]) -> bool:
     p = PurePosixPath(path.as_posix())
     return any(p.match(pat) for pat in patterns)
@@ -149,9 +167,12 @@ def convert_md_to_html(md_content: str) -> str:
 def get_css_styles(
     watermark: str | None = None,
     header: str | None = None,
+    page_break_on_hr: bool = False,
 ) -> str:
     """Generate CSS styles including Pygments syntax highlighting."""
     pygments_css = HtmlFormatter(style="monokai").get_style_defs(".highlight")
+
+    hr_css = HR_PAGE_BREAK_CSS if page_break_on_hr else HR_LINE_CSS
 
     watermark_css = ""
     if watermark is not None:
@@ -346,13 +367,7 @@ def get_css_styles(
     .section:first-child {{
         page-break-before: avoid;
     }}
-
-    hr {{
-        border: none;
-        border-top: 2px solid #eee;
-        margin: 30px 0;
-    }}
-
+    {hr_css}
     {pygments_css}
     """
 
@@ -546,6 +561,7 @@ def generate_pdf(
     exclude: list[str] | None = None,
     custom_css: str | None = None,
     header: str | None = None,
+    page_break_on_hr: bool = False,
 ) -> Path:
     """Generate PDF from markdown file(s)."""
     if not WEASYPRINT_AVAILABLE:
@@ -604,8 +620,10 @@ def generate_pdf(
 
     if custom_css is not None:
         css_string = Path(custom_css).read_text(encoding="utf-8")
+        if page_break_on_hr:
+            css_string += HR_PAGE_BREAK_CSS
     else:
-        css_string = get_css_styles(watermark, header)
+        css_string = get_css_styles(watermark, header, page_break_on_hr)
     css = CSS(string=css_string)
     HTML(string=full_html).write_pdf(output_file, stylesheets=[css])
 
@@ -658,6 +676,11 @@ def main():
         help="Text to display in the page header (e.g. 'belderbos.dev · Python · Rust · AI')",
     )
     parser.add_argument(
+        "--page-break-on-hr",
+        action="store_true",
+        help="Start a new page at each horizontal rule (---) instead of drawing a line",
+    )
+    parser.add_argument(
         "--exclude",
         action="append",
         default=[],
@@ -680,6 +703,7 @@ def main():
             exclude=exclude,
             custom_css=args.css,
             header=args.header,
+            page_break_on_hr=args.page_break_on_hr,
         )
 
     if args.format in ("epub", "both"):
