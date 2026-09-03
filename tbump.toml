@@ -19,3 +19,7 @@ search = 'version = "{current_version}"'
 [[file]]
 src = "tbump.toml"
 search = 'current = "{current_version}"'
+
+[[file]]
+src = "uv.lock"
+search = 'name = "mdweaver"\nversion = "{current_version}"'
