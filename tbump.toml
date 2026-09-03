@@ -20,6 +20,6 @@ search = 'version = "{current_version}"'
 src = "tbump.toml"
 search = 'current = "{current_version}"'
 
-[[file]]
-src = "uv.lock"
-search = 'name = "mdweaver"\nversion = "{current_version}"'
+[[before_commit]]
+name = "update uv.lock"
+cmd = "uv lock"
